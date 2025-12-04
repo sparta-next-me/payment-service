@@ -1,3 +1,49 @@
 spring:
   application:
     name: payment-service
+  config:
+    import: "configserver:http://13.210.162.214:3100"
+  # 1. H2 데이터베이스 설정
+  datasource:
+    # JDBC URL: 메모리 모드를 사용하고, DB 이름을 'testdb'로 설정
+    url: jdbc:h2:mem:testdb
+    # 드라이버 클래스
+    driver-class-name: org.h2.Driver
+    # 사용자 이름 (기본값: 'sa')
+    username: sa
+    # 비밀번호 (기본값: 공백)
+    password:
+  # 2. H2 Console 설정
+  h2:
+    # H2-Console 기능을 활성화합니다.
+    console:
+      enabled: true
+      # 콘솔 접속 경로를 /h2-console로 설정합니다. (기본값)
+      path: /h2-console
+      # 원격 접속 허용 (개발 환경에서만 사용 권장)
+      settings:
+        web-allow-others: true
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://13.210.162.214:3150/eureka/
+
+
+# OPEN DOC API 설정
+springdoc:
+  version: '1.0.0'
+  api-docs:
+    path: /v3/api-docs
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  swagger-ui:
+    operations-sorter: alpha
+    tags-sorter: alpha
+    path: /api-docs.html
+    disable-swagger-default-url: true
+    doc-expansion: full
+  paths-to-match:
+    - /**
