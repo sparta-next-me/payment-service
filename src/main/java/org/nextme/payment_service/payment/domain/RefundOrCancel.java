@@ -64,4 +64,44 @@ public class RefundOrCancel extends JpaAudit implements Serializable {
         this.refundedAt = refundedAt;
         this.createdAt = createdAt;
     }
+
+    /**
+     * 팩토리 메서드 : 환불 요청 엔티티 생성
+     */
+    public static RefundOrCancel requestRefund(UUID paymentId, UUID sagaId, double refundAmount, RefundReason reason) {
+        return RefundOrCancel.builder()
+                .refundId(UUID.randomUUID())
+                .paymentId(paymentId)
+                .sagaId(sagaId)
+                .refundAmount(refundAmount)
+                .reason(reason)
+                .status(RefundStatus.REQUESTED)
+                .build();
+    }
+
+    /**
+     * 환불 성공 처리 및 PG ID 기록
+     */
+    public void markAsSuccess() {
+        if (this.status != RefundStatus.PENDING_PG) {
+            throw new IllegalStateException("환불은 PENDING_PG 상태에서만 완료될 수 있습니다.");
+        }
+        this.status = RefundStatus.SUCCESS;
+        this.pgRefundId = pgRefundId;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 환불 실패 처리
+     */
+    public void markAsFailed() {
+        this.status = RefundStatus.FAILED;
+    }
+
+    /**
+     * PG 연동 직전 상태로 변경
+     */
+    public void markAsPendingPg() {
+        this.status = RefundStatus.PENDING_PG;
+    }
 }

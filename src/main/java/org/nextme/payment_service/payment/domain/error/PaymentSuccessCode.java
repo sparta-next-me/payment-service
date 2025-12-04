@@ -11,45 +11,47 @@ import org.nextme.infrastructure.success.BaseSuccessCode;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum PaymentSuccessCode implements BaseSuccessCode {
 
-    HUB_ASSIGNMENT_LIST_OK(
+    // ----------------------------------------------------------------------------------
+    // 1. Payment 엔티티 관련 성공 (결제 승인)
+    // ----------------------------------------------------------------------------------
+    PAYMENT_CONFIRM_SUCCESS(
             HttpStatus.OK,
             "200",
-            "해당 허브 배송 목록이 조회되었습니다."
+            "결제가 성공적으로 승인되었습니다." // 토스페이먼츠 승인 API 호출 성공 시
+    ),
+    PAYMENT_RETRIEVE_SUCCESS(
+            HttpStatus.OK,
+            "200",
+            "결제 정보가 성공적으로 조회되었습니다." // 결제 조회 API 성공 시
     ),
 
-    DELIVERY_DETAIL_OK(
+    // ----------------------------------------------------------------------------------
+    // 2. RefundOrCancel 엔티티 관련 성공 (환불 처리)
+    // ----------------------------------------------------------------------------------
+    REFUND_PROCESS_SUCCESS(
             HttpStatus.OK,
             "200",
-            "배송 상세 정보가 조회되었습니다."
+            "환불 요청이 성공적으로 처리되었습니다." // 환불 API 호출 및 DB 기록 성공 시
     ),
 
-    // 허브 이동 시작
-    HUB_TRANSIT_STARTED(
+    // ----------------------------------------------------------------------------------
+    // 3. SagaCompensation 엔티티 관련 성공 (보상 완료)
+    // ----------------------------------------------------------------------------------
+    SAGA_COMPENSATION_COMPLETED(
             HttpStatus.OK,
             "200",
-            "허브 이동이 시작되었습니다."
+            "Saga 보상 프로세스가 성공적으로 완료되었습니다." // Saga 상태가 COMPLETED로 전환 시
     ),
 
-    // 허브 구간 도착
-    HUB_TRANSIT_ARRIVED(
+    // ----------------------------------------------------------------------------------
+    // 4. 일반적인 비즈니스 오퍼레이션 성공
+    // ----------------------------------------------------------------------------------
+    REQUEST_PROCESSED_OK(
             HttpStatus.OK,
             "200",
-            "허브 도착이 처리되었습니다."
-    ),
-
-    // 업체 배송 시작
-    OUT_FOR_DELIVERY_STARTED(
-            HttpStatus.OK,
-            "200",
-            "업체 배송이 시작되었습니다."
-    ),
-
-    // 최종 배송 완료
-    DELIVERY_COMPLETED(
-            HttpStatus.OK,
-            "200",
-            "배송이 완료되었습니다."
+            "요청이 성공적으로 처리되었습니다." // 특정 결과 없이 일반적인 성공 응답이 필요할 때
     );
+
 
     private final HttpStatus httpStatus;
     private final String code;
