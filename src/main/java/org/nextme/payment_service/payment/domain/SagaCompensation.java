@@ -57,4 +57,50 @@ public class SagaCompensation extends JpaAudit implements Serializable {
         this.startedAt = startedAt;
         this.completedAt = completedAt;
     }
+
+    /**
+     * 팩토리 메서드 : 보상 프로세스 시작
+     */
+    public static SagaCompensation start(UUID sagaId, UUID userId
+            , SagaBusinessType type, String initialReason) {
+        return SagaCompensation.builder()
+                .sagaId(sagaId)
+                .userId(userId)
+                .businessType(type)
+                .currentStep(SagaCurrentStep.INITIATED)
+                .status(SagaStatus.COMPENSATING)
+                .failureReason(initialReason)
+                .startedAt(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * 다음 단계로 진행 및 기록
+     */
+    public void moveToNextStep(SagaCurrentStep nextStep){
+        if(this.status != SagaStatus.COMPENSATING) {
+            throw new IllegalStateException("보상 실행 중 상태에서만 단계를 변경활 수 있습니다.");
+        }
+        this.currentStep = nextStep;
+    }
+
+    /**
+     * 보상 프로세스 성공적으로 완료
+     */
+    public void complete() {
+        if (this.status != SagaStatus.COMPENSATING) {
+            throw new IllegalStateException("보상 실행 중 상태에서만 완료 처리할 수 있습니다.");
+        }
+        this.status = SagaStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 보상 프로세스 최종 실패
+     */
+    public void fail(String newFailureReason) {
+        this.status = SagaStatus.FAILED;
+        this.failureReason = newFailureReason;
+        this.completedAt = LocalDateTime.now();
+    }
 }

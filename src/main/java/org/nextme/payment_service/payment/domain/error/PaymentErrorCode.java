@@ -6,15 +6,43 @@ import org.nextme.payment_service.payment.domain.Payment;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum PaymentErrorCode{
+public enum PaymentErrorCode {
 
-    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "HUB_NOT_FOUND", "해당 허브를 찾을 수 없습니다."),
-    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_NOT_FOUND", "해당 배송을 찾을 수 없습니다."),
-    INVALID_HUB_ID(HttpStatus.BAD_REQUEST, "INVALID_HUB_ID", "유효하지 않은 허브 ID 입니다."),
-    ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", "해당 시작/도착 허브로 갈 수 있는 경로가 없습니다."),
-    INVALID_DELIVERY_STATUS(HttpStatus.BAD_REQUEST, "INVALID_DELIVERY_STATUS", "유효하지 않은 배송 상태입니다."),
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "해당 주문을 찾을 수 없습니다."),
-    RECEIVER_ADDRESS_NOT_FOUND(HttpStatus.BAD_REQUEST, "RECEIVER_ADDRESS_NOT_FOUND", "수령 업체의 주소가 없습니다.");
+    // ----------------------------------------------------------------------------------
+    // 1. Payment 엔티티 관련 오류 (결제 승인, 상태 변경 유효성)
+    // ----------------------------------------------------------------------------------
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "해당 결제 정보를 찾을 수 없습니다."),
+    INVALID_PAYMENT_ID(HttpStatus.BAD_REQUEST, "PAYMENT_002", "유효하지 않은 결제 ID 형식입니다."),
+    AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_003", "요청 금액이 주문 또는 저장된 금액과 일치하지 않습니다."),
+    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_004", "현재 결제 상태에서 요청된 작업을 수행할 수 없습니다."), // 예: 이미 취소된 결제를 또 승인 요청
+    ALREADY_CONFIRMED(HttpStatus.CONFLICT, "PAYMENT_005", "이미 승인 완료된 결제입니다."),
+
+
+    // ----------------------------------------------------------------------------------
+    // 2. PG (Payment Gateway) 통신 및 승인 오류 (토스페이먼츠 연동)
+    // ----------------------------------------------------------------------------------
+    PG_CONFIRM_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PG_101", "PG사에 최종 승인 요청을 실패했습니다."),
+    PG_COMMUNICATION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "PG_102", "PG사 서버와의 통신에 실패했습니다."),
+    PG_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "PG_103", "PG사로부터 유효하지 않은 응답을 받았습니다."),
+
+
+    // ----------------------------------------------------------------------------------
+    // 3. RefundOrCancel 엔티티 관련 오류 (환불 유효성 및 처리)
+    // ----------------------------------------------------------------------------------
+    REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "REFUND_201", "해당 환불 기록을 찾을 수 없습니다."),
+    REFUNDABLE_AMOUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "REFUND_202", "요청 환불 금액이 잔여 환불 가능 금액을 초과합니다."),
+    PG_REFUND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "REFUND_203", "PG사에 환불 요청을 실패했습니다."),
+    REFUND_STATUS_INVALID(HttpStatus.BAD_REQUEST, "REFUND_204", "현재 환불 상태에서 요청된 작업을 수행할 수 없습니다."),
+
+
+    // ----------------------------------------------------------------------------------
+    // 4. SagaCompensation 엔티티 관련 오류 (보상 흐름 관리)
+    // ----------------------------------------------------------------------------------
+    SAGA_NOT_FOUND(HttpStatus.NOT_FOUND, "SAGA_301", "해당 Saga 보상 프로세스를 찾을 수 없습니다."),
+    INVALID_SAGA_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "SAGA_302", "현재 Saga 상태에서 다음 단계로 전환할 수 없습니다."),
+    COMPENSATION_ALREADY_COMPLETED(HttpStatus.CONFLICT, "SAGA_303", "이미 완료된 보상 프로세스입니다."),
+    COMPENSATION_FAILED_CRITICAL(HttpStatus.INTERNAL_SERVER_ERROR, "SAGA_304", "복구 불가능한 Saga 보상 실패가 발생했습니다.");
+
 
     private final HttpStatus httpStatus;
     private final String code;
