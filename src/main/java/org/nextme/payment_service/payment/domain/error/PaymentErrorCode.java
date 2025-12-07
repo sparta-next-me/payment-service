@@ -16,7 +16,7 @@ public enum PaymentErrorCode {
     AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_003", "요청 금액이 주문 또는 저장된 금액과 일치하지 않습니다."),
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_004", "현재 결제 상태에서 요청된 작업을 수행할 수 없습니다."), // 예: 이미 취소된 결제를 또 승인 요청
     ALREADY_CONFIRMED(HttpStatus.CONFLICT, "PAYMENT_005", "이미 승인 완료된 결제입니다."),
-
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "PAYMENT_006", "유효하지 않거나 잘못된 형식의 입력 값입니다."),
 
     // ----------------------------------------------------------------------------------
     // 2. PG (Payment Gateway) 통신 및 승인 오류 (토스페이먼츠 연동)

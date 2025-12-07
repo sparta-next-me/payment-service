@@ -11,6 +11,12 @@ import org.nextme.infrastructure.success.BaseSuccessCode;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum PaymentSuccessCode implements BaseSuccessCode {
 
+
+    // 1. 결제 초기화 성공 (DB에 REQUESTED 상태로 레코드 생성 완료)
+    PAYMENT_INIT_SUCCESS(HttpStatus.OK, "200", "결제 요청 정보가 성공적으로 초기화되었습니다."),
+    PAYMENT_FAILURE_HANDLED(HttpStatus.OK, "S003", "결제 실패 정보 서버 기록 완료"),
+
+
     // ----------------------------------------------------------------------------------
     // 1. Payment 엔티티 관련 성공 (결제 승인)
     // ----------------------------------------------------------------------------------
@@ -51,6 +57,9 @@ public enum PaymentSuccessCode implements BaseSuccessCode {
             "200",
             "요청이 성공적으로 처리되었습니다." // 특정 결과 없이 일반적인 성공 응답이 필요할 때
     );
+
+
+
 
 
     private final HttpStatus httpStatus;

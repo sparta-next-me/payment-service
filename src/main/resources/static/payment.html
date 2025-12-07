@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>Toss 결제 테스트 (백엔드 최종 승인)</title>
+    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+<body style="font-family: sans-serif; text-align: center; margin-top: 100px;">
+<h2>결제 테스트 페이지</h2>
+
+<div id="payment-widget" style="width: 400px; margin: 0 auto; margin-bottom: 20px;"></div>
+
+<button
+        id="payment-request-button"
+        style="
+                background-color: #0066ff;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+            "
+>
+    주문 정보 불러오기 & 결제 요청
+</button>
+
+<script>
+    // 1. 상수 및 변수 정의 (API_SUCCESS_URL 등은 백엔드 URL 대신 최종 HTML 경로로 변경)
+    const API_INIT_URL = 'http://localhost:8080/v1/payments/init';
+    // 💡 결제창 방식에서는 백엔드 컨트롤러가 아닌, 최종 HTML 파일로 리다이렉트 URL을 하드코딩합니다.
+    const SUCCESS_URL = 'http://localhost:8080/success.html';
+    const FAIL_URL = 'http://localhost:8080/fail.html';
+
+    // 💡 결제창 방식에서 사용할 테스트 클라이언트 키 (토스페이먼츠 라이브러리 초기화용)
+    const TOSS_CLIENT_KEY = "test_ck_Gv6LjeKD8azXjngMeXkN3wYxAdXy";
+
+    // 2. DOM 요소 참조
+    const paymentButton = document.getElementById('payment-request-button');
+
+    // 3. 요소 존재 여부 확인 (안정성)
+    if (paymentButton) {
+        // 버튼 클릭 이벤트 리스너: async 키워드를 반드시 포함합니다.
+        paymentButton.addEventListener('click', async () => {
+
+            // 💡 실제로는 userId, productName, amount는 동적으로 가져와야 합니다.
+            const tempUserId = "123e4567-e89b-12d3-a456-426614174000";
+            const tempProductName = "이한빈님의 주문 결제 테스트 상품";
+            const tempAmount = 30000;
+
+            // 백엔드 @RequestBody에 맞게 전송할 객체 정의
+            const requestBody = {
+                userId: tempUserId,
+                productName: tempProductName,
+                amount: tempAmount
+            };
+
+            let orderId;
+            let amount;
+            // 💡 clientKey는 이제 fetch 응답에서 받아와도 사용하지 않습니다.
+
+            try {
+                // --- 1. 백엔드 /init 엔드포인트 호출 (주문 생성 및 orderId 획득) ---
+                const response = await fetch(
+                    API_INIT_URL,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            "Authorization": "Bearer " + localStorage.getItem("accessToken")
+                        },
+                        body: JSON.stringify(requestBody)
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    throw new Error(`백엔드 주문 초기화 실패: ${response.status} - ${errorBody}`);
+                }
+
+                // 2. 백엔드 응답 데이터 파싱 (orderId와 amount만 사용)
+                const initData = await response.json();
+
+                orderId = initData.orderId;
+                amount = initData.amount;
+                // clientKey는 무시 (위젯 방식이 아니기 때문)
+
+
+                // --- 3. 토스페이먼츠 기본 결제창 호출 로직 (요청하신 형태로 변경) ---
+
+                // 💡 Payment UI 라이브러리 초기화
+                const tossPayments = TossPayments(TOSS_CLIENT_KEY); // 하드코딩된 키 사용
+
+                tossPayments
+                    .requestPayment("카드", { // "카드"는 결제 수단 타입입니다.
+                        amount: amount,
+                        orderId: orderId,
+                        orderName: tempProductName, // 백엔드에서 받은 주문명을 사용
+                        successUrl: SUCCESS_URL, // 정적 HTML 경로
+                        failUrl: FAIL_URL,      // 정적 HTML 경로
+                    })
+                    .catch((error) => {
+                        console.error("❌ 결제 요청 실패:", error);
+                    });
+
+
+            } catch (error) {
+                console.error('❌ 결제 초기화 및 요청 실패:', error);
+                alert('결제 준비 중 오류가 발생했습니다. (콘솔을 확인해 주세요)');
+                return;
+            }
+        });
+    } else {
+        console.error("❌ [HTML 요소 오류] ID 'payment-request-button'을 찾을 수 없습니다.");
+    }
+</script>
+</body>
+</html>
+
+
+<!--
+const paymentButton = document.getElementById("payment-button");
+
+paymentButton.addEventListener("click", async () => {
+const orderId = "1cec0cb5-bac2-49e7-9645-5786a58b9763";
+const amount = 10000;
+
+// 결제 금액 임시 저장 (Spring이 세션에 저장함)
+await fetch("/v1/payments/saveAmount", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+"Authorization": "Bearer " + localStorage.getItem("accessToken")
+},
+body: JSON.stringify({ orderId, amount }),
+});
+
+
+// Toss 결제창 호출
+const tossPayments = TossPayments("test_ck_Gv6LjeKD8azXjngMeXkN3wYxAdXy"); // 테스트용 클라이언트 키
+
+tossPayments
+.requestPayment("카드", {
+amount,
+orderId,
+orderName: "이한빈님의 주문 결제 테스트",
+successUrl: "http://localhost:8080/success.html",
+failUrl: "http://localhost:8080/fail.html",
+})
+.catch((error) => {
+console.error("❌ 결제 요청 실패:", error);
+});
+});-->

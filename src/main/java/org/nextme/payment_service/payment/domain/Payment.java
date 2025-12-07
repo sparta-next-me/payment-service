@@ -16,7 +16,7 @@ import java.util.UUID;
 public class Payment extends JpaAudit {
 
     @Id
-    @Column(name = "payment_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID paymentId;
 
     @Column(name = "saga_id", nullable = false)
@@ -29,10 +29,10 @@ public class Payment extends JpaAudit {
     private String productName;
 
     @Column(name = "amount", nullable = false)
-    private double amount;
+    private long amount;
 
     @Column(name = "refundable_amount", nullable = false)
-    private double refundableAmount; // 현재 환불 가능한 잔여 금액 (핵심 필드 추가)
+    private long refundableAmount; // 현재 환불 가능한 잔여 금액 (핵심 필드 추가)
 
     @Column(name = "pg_transaction_id") // nullable=false 제거 (승인 전에는 값이 없음)
     private String pgTransactionId;
@@ -40,6 +40,18 @@ public class Payment extends JpaAudit {
     @Enumerated(EnumType.STRING)
     @Column(name = "local_status", nullable = false)
     private PaymentStatus localStatus;
+
+    private String failureCode;
+
+    private String failureMessage;
+
+    private String paymentKey;
+
+    private LocalDateTime requestedAt;
+
+    private LocalDateTime approvedAt;
+
+    private String method;
 
     @Column(name = "paid_at") //nullable=false 제거 (승인 전에는 값이 없음)
     private LocalDateTime paidAt;
@@ -54,14 +66,14 @@ public class Payment extends JpaAudit {
 
     @Builder
     public Payment(UUID paymentId, UUID sagaId, UUID userId, String productName
-            , double amount, String pgTransactionId, PaymentStatus localStatus
-            , LocalDateTime paidAt, boolean isCompensated) {
+            , long amount, long refundableAmount, String pgTransactionId, PaymentStatus localStatus, LocalDateTime paidAt, boolean isCompensated) {
 
-        this.paymentId = paymentId;
+        if (paymentId != null) this.paymentId = paymentId;
         this.sagaId = sagaId;
         this.userId = userId;
         this.productName = productName;
         this.amount = amount;
+        this.refundableAmount = refundableAmount;
         this.pgTransactionId = pgTransactionId;
         this.localStatus = localStatus;
         this.paidAt = paidAt;
@@ -102,5 +114,14 @@ public class Payment extends JpaAudit {
      */
     public boolean isAmountValid(double inputAmount) {
         return (Math.abs(this.amount - inputAmount) < 0.001);
+    }
+
+    public void markFailure(String errorCode, String errorMessage) {
+        // 1. 상태를 FAILED로 변경
+        this.localStatus = PaymentStatus.FAILED;
+
+        // 2. 실패 정보 기록
+        this.failureCode = errorCode;
+        this.failureMessage = errorMessage;
     }
 }
