@@ -47,3 +47,14 @@ springdoc:
     doc-expansion: full
   paths-to-match:
     - /**
+
+toss:
+  secret-key: "test_sk_DpexMgkW36RZMjz2xwvd3GbR5ozO"
+  client-key: "test_ck_Gv6LjeKD8azXjngMeXkN3wYxAdXy"
+
+server:
+  servlet:
+    encoding:
+      charset: utf-8
+      enabled: true
+      force: true
