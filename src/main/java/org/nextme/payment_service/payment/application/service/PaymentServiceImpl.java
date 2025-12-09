@@ -1,22 +1,24 @@
 package org.nextme.payment_service.payment.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.nextme.payment_service.payment.domain.Payment;
-import org.nextme.payment_service.payment.domain.PaymentStatus;
+import org.nextme.payment_service.payment.domain.*;
 import org.nextme.payment_service.payment.domain.error.PaymentErrorCode;
 import org.nextme.payment_service.payment.domain.error.PaymentException;
 import org.nextme.payment_service.payment.domain.service.PaymentGatewayService;
 import org.nextme.payment_service.payment.domain.valueobject.PaymentConfirmationResponse;
+import org.nextme.payment_service.payment.domain.valueobject.RefundConfirmationResponse;
 import org.nextme.payment_service.payment.infrastructure.PaymentRepository;
+import org.nextme.payment_service.payment.infrastructure.RefundOrCancelRepository;
 import org.nextme.payment_service.payment.infrastructure.toss.dto.PaymentListResponse;
 import org.nextme.payment_service.payment.presentation.PaymentDetailResponse;
 import org.nextme.payment_service.payment.presentation.PaymentInitResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.print.Pageable;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service // 💡 Spring Bean으로 등록
@@ -26,6 +28,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentGatewayService paymentGatewayService;
+    private final RefundOrCancelRepository refundOrCancelRepository;
+    private final PaymentEventProducer eventProducer;
     // ... 다른 의존성 ...
 
     @Value("${toss.client-key}")
@@ -143,15 +147,87 @@ public class PaymentServiceImpl implements PaymentService {
     public Page<PaymentListResponse> getPaymentList(Pageable pageable, Long userId, String status) {
         // 1. Repository에서 Page 객체로 데이터 조회 (필터링 로직 포함)
         // 이 부분은 실제 Repository의 커스텀 메서드 또는 Querydsl로 구현해야 합니다.
-        Page<PaymentListResponse> entityPage = paymentRepository.findFilteredPayments(pageable, userId, status);
+        Page<Payment> entityPage = paymentRepository.findFilteredPayments(pageable, userId, status);
 
         // 2. 조회된 Entity Page를 Response DTO Page로 변환 (Map)
         return entityPage.map(entity -> PaymentListResponse.builder()
                 .orderId(entity.getOrderId())
                 .orderName(entity.getOrderName())
                 .amount(entity.getAmount())
-                .paymentStatus(entity.getPaymentStatus())
+                .paymentStatus(entity.getLocalStatus().name())
                 .requestedAt(entity.getRequestedAt())
                 .build());
+    }
+
+    @Override
+    @Transactional
+    public void cancelPayment(String orderId, String cancelReason, Long cancelAmount) {
+
+        UUID paymentId = getPaymentIdFromOrderId(orderId);
+
+        Payment payment = paymentRepository.findByPaymentId(paymentId)
+                .orElseThrow(() -> new PaymentException(PaymentErrorCode.PAYMENT_NOT_FOUND, "결제 정보를 찾을 수 없습니다."));
+
+        validateCancellation(payment, cancelAmount);
+
+
+        RefundConfirmationResponse response = paymentGatewayService.requestCancel(
+                payment.getPaymentKey(),
+                cancelAmount,
+                cancelReason
+        );
+
+        payment.updateStatusForCancel(cancelAmount);
+        paymentRepository.save(payment);
+
+        UUID sagaId = UUID.randomUUID(); // 임시 Saga ID
+
+
+        RefundOrCancel cancelRecord = RefundOrCancel.builder()
+                .refundId(UUID.randomUUID()) // 새로운 환불 거래 고유 ID 생성 (PK)
+                .paymentId(payment.getPaymentId()) // 원본 결제 ID
+                .sagaId(sagaId) // Saga ID 설정
+                .refundAmount(cancelAmount.doubleValue()) // 취소 요청 금액 (Long -> double)
+                .status(RefundStatus.SUCCESS) // PG 통신 성공 직후이므로 SUCCESS로 기록
+                .createdAt(LocalDateTime.now()) // 레코드 생성 시각
+                .build();
+
+// 2. DB에 저장
+        refundOrCancelRepository.save(cancelRecord);
+
+
+
+        eventProducer.sendPaymentCancelledEvent(
+                payment.getPaymentId().toString(),
+                cancelAmount,
+                cancelReason
+        );
+
+    }
+
+    private UUID getPaymentIdFromOrderId(String orderId) {
+        try {
+            return UUID.fromString(orderId);
+        } catch (IllegalArgumentException e) {
+            throw new PaymentException(PaymentErrorCode.INVALID_INPUT, "유효하지 않은 주문 ID 형식입니다.");
+        }
+    }
+
+    private void validateCancellation(Payment payment, Long cancelAmount) {
+        /*if (payment.getLocalStatus() != PaymentStatus.CONFIRMED && payment.getLocalStatus() != PaymentStatus.PARTIAL_CANCELLED) {
+            throw new PaymentException(PaymentErrorCode.INVALID_PAYMENT_STATUS, "취소는 완료(CONFIRMED) 또는 부분 취소(PARTIAL_CANCELLED) 상태에서만 가능합니다.");
+        }*/
+
+        // 환불 요청 금액 계산 (null이면 전체 잔여 금액)
+        long requestedAmount = (cancelAmount != null) ? cancelAmount : payment.getRefundableAmount();
+
+        if (requestedAmount <= 0) {
+            throw new PaymentException(PaymentErrorCode.INVALID_INPUT, "취소 요청 금액은 0보다 커야 합니다.");
+        }
+
+        // 잔여 환불 금액 확인
+        if (requestedAmount > payment.getRefundableAmount()) {
+            throw new PaymentException(PaymentErrorCode.REFUNDABLE_AMOUNT_EXCEEDED, "요청 금액이 잔여 환불 가능 금액을 초과합니다.");
+        }
     }
 }

@@ -12,10 +12,10 @@ import org.nextme.payment_service.payment.presentation.PaymentDetailResponse;
 import org.nextme.payment_service.payment.presentation.PaymentInitResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.print.Pageable;
 import java.util.UUID;
 
 public interface PaymentService {
@@ -34,6 +34,8 @@ public interface PaymentService {
 
     // 💡 5. 목록 조회 (새로 추가, Pageable과 필터링 조건은 생략)
     Page<PaymentListResponse> getPaymentList(Pageable pageable, Long userId, String status);
+
+    void cancelPayment(String orderId, String cancelReason, Long cancelAmount);
 }
 
 /*@Service
