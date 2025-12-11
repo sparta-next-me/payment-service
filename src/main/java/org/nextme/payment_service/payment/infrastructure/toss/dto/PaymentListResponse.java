@@ -1,5 +1,6 @@
 package org.nextme.payment_service.payment.infrastructure.toss.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -7,6 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@AllArgsConstructor
 public class PaymentListResponse {
     private final String orderId;
     private final String orderName;

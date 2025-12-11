@@ -6,10 +6,10 @@ import org.nextme.payment_service.payment.domain.error.PaymentSuccessCode;
 import org.nextme.payment_service.payment.infrastructure.PaymentRepository;
 import org.nextme.payment_service.payment.infrastructure.toss.dto.PaymentListResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.awt.print.Pageable;
 import java.util.UUID;
 
 @RestController
@@ -92,5 +92,16 @@ public class PaymentController {
 
         // 2. HTTP 200 OK와 함께 Page 객체 반환
         return ResponseEntity.ok(responsePage);
+    }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<String> cancelPayment(@RequestBody PaymentCancelRequest request) {
+        paymentService.cancelPayment(
+                request.getOrderId(),
+                request.getReason(),
+                request.getCancelAmount()
+        );
+
+        return ResponseEntity.ok("결제 취소 요청이 성공적으로 접수되었으며, 환불 처리 중입니다.");
     }
 }

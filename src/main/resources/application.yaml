@@ -23,6 +23,22 @@ spring:
       # 원격 접속 허용 (개발 환경에서만 사용 권장)
       settings:
         web-allow-others: true
+  kafka:
+    bootstrap-servers: 34.22.87.75:9092 # Kafka 브로커 주소 (환경에 맞게 변경)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 객체를 JSON으로 직렬화
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: payment-group # 컨슈머 그룹 ID (각 서비스에 맞게 고유하게 설정)
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # JSON을 객체로 역직렬화
+      properties:
+        # 역직렬화 시 사용할 클래스 정보를 설정 (없으면 에러 발생 가능)
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: org.nextme.common.event.PaymentConfirmedEvent
 
 eureka:
   client:
