@@ -66,6 +66,11 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
+        eventProducer.sendPaymentConfirmedEvent(
+                payment.getUserId(),
+                payment.getPaymentKey()
+        );
+
         // 6. [SAGA 처리]: 결제 성공 이벤트 발행 (다른 도메인 서비스에 알림)
         // eventPublisher.publish(new PaymentConfirmedEvent(payment.getSagaId(), ...));
     }
@@ -195,13 +200,6 @@ public class PaymentServiceImpl implements PaymentService {
 // 2. DB에 저장
         refundOrCancelRepository.save(cancelRecord);
 
-
-
-        eventProducer.sendPaymentCancelledEvent(
-                payment.getPaymentId().toString(),
-                cancelAmount,
-                cancelReason
-        );
 
     }
 

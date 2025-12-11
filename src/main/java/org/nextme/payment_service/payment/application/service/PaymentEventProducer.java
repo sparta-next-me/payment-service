@@ -1,9 +1,11 @@
 package org.nextme.payment_service.payment.application.service;
 
 import lombok.RequiredArgsConstructor;
-import org.nextme.payment_service.payment.presentation.PaymentCancelledEvent;
+import org.nextme.common.event.PaymentConfirmedEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -11,11 +13,11 @@ public class PaymentEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private static final String TOPIC_PAYMENT_CANCELLED = "payment.cancelled.v1";
+    private static final String TOPIC_PAYMENT_CONFIRMED = "payment.confirmed.v1";
 
-    public void sendPaymentCancelledEvent(String orderId, Long amount, String reason) {
-        PaymentCancelledEvent event = new PaymentCancelledEvent(orderId, amount, reason);
+    public void sendPaymentConfirmedEvent(UUID userId, String paymentKey) {
+        PaymentConfirmedEvent event = new PaymentConfirmedEvent(userId.toString(), paymentKey);
 
-        kafkaTemplate.send(TOPIC_PAYMENT_CANCELLED, orderId, event);
+        kafkaTemplate.send(TOPIC_PAYMENT_CONFIRMED, paymentKey, event);
     }
 }
