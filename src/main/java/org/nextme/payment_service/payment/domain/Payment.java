@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.nextme.common.jpa.JpaAudit;
+import org.nextme.payment_service.payment.domain.error.PaymentErrorCode;
+import org.nextme.payment_service.payment.domain.error.PaymentException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -25,6 +27,12 @@ public class Payment extends JpaAudit {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    private String orderId;
+
+    private String orderName;
+
+
+
     @Column(name = "product_name", nullable = false)
     private String productName;
 
@@ -34,8 +42,8 @@ public class Payment extends JpaAudit {
     @Column(name = "refundable_amount", nullable = false)
     private long refundableAmount; // 현재 환불 가능한 잔여 금액 (핵심 필드 추가)
 
-    @Column(name = "pg_transaction_id") // nullable=false 제거 (승인 전에는 값이 없음)
-    private String pgTransactionId;
+    @Column(name = "payment_key") // nullable=false 제거 (승인 전에는 값이 없음)
+    private String paymentKey;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "local_status", nullable = false)
@@ -44,8 +52,6 @@ public class Payment extends JpaAudit {
     private String failureCode;
 
     private String failureMessage;
-
-    private String paymentKey;
 
     private LocalDateTime requestedAt;
 
@@ -66,7 +72,7 @@ public class Payment extends JpaAudit {
 
     @Builder
     public Payment(UUID paymentId, UUID sagaId, UUID userId, String productName
-            , long amount, long refundableAmount, String pgTransactionId, PaymentStatus localStatus, LocalDateTime paidAt, boolean isCompensated) {
+            , long amount, long refundableAmount, String paymentKey, PaymentStatus localStatus, LocalDateTime paidAt, boolean isCompensated) {
 
         if (paymentId != null) this.paymentId = paymentId;
         this.sagaId = sagaId;
@@ -74,7 +80,7 @@ public class Payment extends JpaAudit {
         this.productName = productName;
         this.amount = amount;
         this.refundableAmount = refundableAmount;
-        this.pgTransactionId = pgTransactionId;
+        this.paymentKey = paymentKey;
         this.localStatus = localStatus;
         this.paidAt = paidAt;
         this.isCompensated = isCompensated;
@@ -83,12 +89,12 @@ public class Payment extends JpaAudit {
     /**
      * 최종 결제 승인 성공 처리
      */
-    public void confirmSuccess(String pgTransactionId) {
+    public void confirmSuccess(String paymentKey) {
         if(this.localStatus != PaymentStatus.REQUESTED) {
             throw new IllegalStateException("결제 상태 오류: 현재 상태는 " + this.localStatus);
         }
         this.localStatus = PaymentStatus.SUCCESS;
-        this.pgTransactionId = pgTransactionId;
+        this.paymentKey = paymentKey;
         this.paidAt = LocalDateTime.now();
     }
 
@@ -123,5 +129,35 @@ public class Payment extends JpaAudit {
         // 2. 실패 정보 기록
         this.failureCode = errorCode;
         this.failureMessage = errorMessage;
+    }
+
+    public void updateStatusForCancel(Long requestedCancelAmount) {
+
+        // 1. 상태 변경 전 현재 환불 가능 금액 확인
+        long currentRefundableAmount = this.refundableAmount;
+
+        if (requestedCancelAmount > currentRefundableAmount) {
+            // 이 로직은 Service 계층의 validateCancellation()에서 이미 처리되어야 하지만,
+            // 안전을 위해 도메인 레벨에서도 확인하는 것이 좋습니다.
+            throw new PaymentException(
+                    PaymentErrorCode.REFUNDABLE_AMOUNT_EXCEEDED,
+                    "요청 금액(" + requestedCancelAmount + ")이 잔여 환불 금액(" + currentRefundableAmount + ")을 초과합니다."
+            );
+        }
+
+        // 2. 환불 가능 금액 업데이트
+        this.refundableAmount -= requestedCancelAmount;
+
+        // 3. 결제 상태 업데이트
+        if (this.refundableAmount <= 0) {
+            // 잔여 환불 금액이 0이거나 그 이하이면 전액 취소 완료
+            this.localStatus = PaymentStatus.CANCELLED;
+        } else {
+            // 잔여 환불 금액이 남아있으면 부분 취소 상태
+            this.localStatus = PaymentStatus.PARTIAL_CANCELLED;
+        }
+
+        // 💡 JPA 엔티티이므로, 별도의 setter 없이 필드 값을 직접 변경해도
+        // Service에서 paymentRepository.save(payment) 호출 시 변경 사항이 반영됩니다.
     }
 }

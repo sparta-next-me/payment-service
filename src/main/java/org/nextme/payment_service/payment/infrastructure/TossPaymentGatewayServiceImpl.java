@@ -1,27 +1,24 @@
 package org.nextme.payment_service.payment.infrastructure;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nextme.payment_service.payment.domain.error.PaymentErrorCode;
 import org.nextme.payment_service.payment.domain.error.PaymentException;
 import org.nextme.payment_service.payment.domain.service.PaymentGatewayService;
-import org.nextme.payment_service.payment.domain.service.RefundGatewayService;
 import org.nextme.payment_service.payment.domain.valueobject.PaymentConfirmationResponse;
 import org.nextme.payment_service.payment.domain.valueobject.RefundConfirmationResponse;
-import org.nextme.payment_service.payment.infrastructure.toss.dto.TossCancelResponse;
-import org.nextme.payment_service.payment.infrastructure.toss.dto.TossConfirmResponse;
+import org.nextme.payment_service.payment.infrastructure.toss.dto.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
 @Service
-public class TossPaymentGatewayServiceImpl implements PaymentGatewayService, RefundGatewayService {
+@Slf4j
+public class TossPaymentGatewayServiceImpl implements PaymentGatewayService {
 
     @Value("${toss.secret-key}")
     private String secretKey;
@@ -89,30 +86,97 @@ public class TossPaymentGatewayServiceImpl implements PaymentGatewayService, Ref
     }
 
     @Override
-    public RefundConfirmationResponse requestCancel(String paymentKey, double cancelAmount, String cancelReason) {
+    public TossInitialResponse requestInitialPayment(TossInitialRequest request) {
+        log.info("PG사 초기 결제 요청 시작. Order ID: {}", request.getOrderId());
+
+        try {
+            // 1. WebClient를 사용하여 PG사에 초기 결제 요청 전송
+            TossInitialResponse response = webClient.post()
+                    .uri("/payments") // 결제 위젯 초기화 엔드포인트
+                    .headers(headers -> headers.setBasicAuth(secretKey, "")) // 인증 헤더 설정
+                    .body(BodyInserters.fromValue(request)) // TossInitialRequest DTO를 JSON 본문으로 사용
+                    .retrieve()
+
+                    // 2. 4xx 클라이언트 오류 처리 (잘못된 주문 정보 등)
+                    .onStatus(httpStatus -> httpStatus.is4xxClientError(), clientResponse ->
+                            clientResponse.bodyToMono(TossErrorResponse.class).flatMap(error -> {
+                                log.error("PG 4xx 초기 요청 오류. Code: {}, Msg: {}", error.getCode(), error.getMessage());
+                                return Mono.error(new PaymentException(
+                                        PaymentErrorCode.PG_INITIAL_FAILED,
+                                        "PG 초기 요청 실패: " + error.getMessage()
+                                ));
+                            })
+                    )
+                    // 3. 5xx 서버 오류 처리 (PG사 시스템 문제)
+                    .onStatus(httpStatus -> httpStatus.is5xxServerError(), clientResponse -> {
+                        log.error("PG 5xx 서버 오류 발생 (초기 요청)");
+                        return Mono.error(new PaymentException(PaymentErrorCode.PG_COMMUNICATION_ERROR, "PG사 서버 오류 발생 (초기 요청)"));
+                    })
+
+                    .bodyToMono(TossInitialResponse.class) // PG사 응답을 DTO로 매핑
+                    .block(); // 동기적으로 처리
+
+            log.info("PG사 초기 결제 요청 성공. Order ID: {}", response.getOrderId());
+            return response;
+
+        } catch (PaymentException e) {
+            // onStatus에서 발생한 PG 오류 재전파
+            throw e;
+        } catch (Exception e) {
+            // 네트워크 오류 등 예기치 않은 시스템 오류 처리
+            log.error("PG 초기 요청 중 통신 오류 발생. Order ID: {}", request.getOrderId(), e);
+            throw new PaymentException(PaymentErrorCode.PG_COMMUNICATION_ERROR, "결제 초기 요청 중 알 수 없는 시스템 오류 발생");
+        }
+    }
+
+    @Override
+    public RefundConfirmationResponse requestCancel(String paymentKey, Long cancelAmount, String cancelReason) {
         Map<String, Object> requestBody = Map.of(
-                "cancelAmount", (long) cancelAmount, // PG사는 금액을 long으로 요구
-                "reason", cancelReason
+                "cancelAmount", (long) cancelAmount,
+                "cancelReason", cancelReason
         );
 
         try {
             TossCancelResponse response = webClient.post()
-                    .uri("/{paymentKey}/cancel", paymentKey)
+                    // 💡 수정된 URI 경로: /payments를 명시합니다.
+                    .uri("/payments/{paymentKey}/cancel", paymentKey)
+                    // 💡 인증 헤더 설정은 기존 코드처럼 Base64 인코딩된 문자열 사용
                     .headers(headers -> headers.setBasicAuth(getBasicAuthHeader()))
                     .body(BodyInserters.fromValue(requestBody))
                     .retrieve()
-                    // 취소 API도 승인과 동일하게 4xx, 5xx 오류 처리 로직 추가 필요
+
+                    // 🚨 4xx 클라이언트 오류 처리 로직 추가 (필수)
+                    .onStatus(httpStatus -> httpStatus.is4xxClientError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class).flatMap(body -> {
+                                System.err.println("PG사 4xx 취소 에러 응답 : " + body);
+                                // TossErrorResponse DTO를 파싱하는 것이 더 좋습니다. (여기서는 String으로 처리)
+                                return Mono.error(new PaymentException(PaymentErrorCode.PG_REFUND_FAILED, "PG 취소 실패: " + body));
+                            })
+                    )
+                    // 🚨 5xx 서버 오류 처리 로직 추가 (필수)
+                    .onStatus(httpStatus -> httpStatus.is5xxServerError(), clientResponse -> {
+                        System.err.println("PG사 5xx 서버 오류 발생 (취소)");
+                        return Mono.error(new PaymentException(PaymentErrorCode.PG_COMMUNICATION_ERROR, "PG사 서버 오류 발생 (취소)"));
+                    })
+
                     .bodyToMono(TossCancelResponse.class)
                     .block();
 
+            log.info("response 확인:{}", response);
+            TossCancelResponse.Cancel cancel = response.getCancels().getFirst();
             return new RefundConfirmationResponse(
                     paymentKey,
-                    response.getCancelId(),
-                    response.getCancelledAmount()
+                    cancel == null ? null : cancel.getCancelId(),
+                    cancel == null ? 0L : cancel.getCancelledAmount()
             );
 
+        } catch (PaymentException e) {
+            // onStatus에서 발생한 PaymentException을 다시 던짐
+            throw e;
         } catch (Exception e) {
-            throw new PaymentException(PaymentErrorCode.PG_REFUND_FAILED, e.getMessage());
+            log.error(e.getMessage(), e);
+            // 네트워크 오류 등 알 수 없는 오류 처리
+            throw new PaymentException(PaymentErrorCode.PG_COMMUNICATION_ERROR, "결제 취소 중 알 수 없는 시스템 오류 발생: " + e.getMessage());
         }
     }
 }

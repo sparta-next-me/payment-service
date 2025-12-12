@@ -19,34 +19,34 @@ import java.util.UUID;
 public class RefundOrCancel extends JpaAudit implements Serializable {
 
     @Id
-    @Column(name = "refund_id", nullable = false)
+    @Column(name = "refund_id")
     private UUID refundId; // 환불 거래의 고유 ID (PK)
 
-    @Column(name = "payment_id", nullable = false)
+    @Column(name = "payment_id")
     private UUID paymentId; // 원본 결제 ID (FK: p_payment 참조)
 
-    @Column(name = "saga_id", nullable = false)
+    @Column(name = "saga_id")
     private UUID sagaId; // 이 환불을 유발한 Saga ID (FK: p_saga_compensation 참조)
 
-    @Column(name = "refund_amount", nullable = false)
+    @Column(name = "refund_amount")
     private double refundAmount; // 실제 환불된 금액
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "refund_reason", nullable = false)
+    @Column(name = "refund_reason")
     private RefundReason reason; // 환불 사유: SAGA_COMPENSATION, USER_REQUEST 등
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status")
     private RefundStatus status; // 환불 처리 상태: SUCCESS, PENDING, FAILED
 
-    @Column(name = "pg_refund_id", nullable = false)
+    @Column(name = "pg_refund_id")
     private String pgRefundId; // PG사(토스페이먼츠)에서 받은 환불 고유 ID
 
-    @Column(name = "refunded_at", nullable = false)
+    @Column(name = "refunded_at")
     private LocalDateTime refundedAt; // 환불이 완료된 시각
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt; // 레코드 생성 시각
 
     @Builder

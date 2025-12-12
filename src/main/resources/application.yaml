@@ -5,24 +5,37 @@ spring:
     import: "configserver:http://13.210.162.214:3100"
   # 1. H2 데이터베이스 설정
   datasource:
-    # JDBC URL: 메모리 모드를 사용하고, DB 이름을 'testdb'로 설정
-    url: jdbc:h2:mem:testdb
-    # 드라이버 클래스
-    driver-class-name: org.h2.Driver
-    # 사용자 이름 (기본값: 'sa')
-    username: sa
-    # 비밀번호 (기본값: 공백)
-    password:
-  # 2. H2 Console 설정
-  h2:
-    # H2-Console 기능을 활성화합니다.
-    console:
-      enabled: true
-      # 콘솔 접속 경로를 /h2-console로 설정합니다. (기본값)
-      path: /h2-console
-      # 원격 접속 허용 (개발 환경에서만 사용 권장)
-      settings:
-        web-allow-others: true
+    url: jdbc:postgresql://34.22.87.75:4020/nextme_db
+    username: nextme
+    password: _aA123456
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: paymentservice
+  flyway:
+    enabled: true
+    schemas: paymentservice
+    default-schema: paymentservice
+    baseline-on-migrate: true
+  kafka:
+    bootstrap-servers: 34.22.87.75:9092 # Kafka 브로커 주소 (환경에 맞게 변경)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # 객체를 JSON으로 직렬화
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: payment-group # 컨슈머 그룹 ID (각 서비스에 맞게 고유하게 설정)
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # JSON을 객체로 역직렬화
+      properties:
+        # 역직렬화 시 사용할 클래스 정보를 설정 (없으면 에러 발생 가능)
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: org.nextme.common.event.PaymentConfirmedEvent
 
 eureka:
   client:
@@ -49,8 +62,8 @@ springdoc:
     - /**
 
 toss:
-  secret-key: "test_sk_DpexMgkW36RZMjz2xwvd3GbR5ozO"
-  client-key: "test_ck_Gv6LjeKD8azXjngMeXkN3wYxAdXy"
+  secret-key: ${TOSS_SECRET_KEY}
+  client-key: ${TOSS_CLIENT_KEY}
 
 server:
   servlet:
@@ -58,3 +71,5 @@ server:
       charset: utf-8
       enabled: true
       force: true
+
+  port: 11113
