@@ -30,6 +30,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentGatewayService paymentGatewayService;
     private final RefundOrCancelRepository refundOrCancelRepository;
     private final PaymentEventProducer eventProducer;
+    private final PaymentCancellationProducer paymentCancellationProducer;
     // ... 다른 의존성 ...
 
     @Value("${toss.client-key}")
@@ -68,7 +69,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         eventProducer.sendPaymentConfirmedEvent(
                 payment.getUserId(),
-                payment.getPaymentKey()
+                payment.getPaymentKey(),
+                payment.getPaymentId().toString()
         );
 
         // 6. [SAGA 처리]: 결제 성공 이벤트 발행 (다른 도메인 서비스에 알림)
@@ -200,6 +202,16 @@ public class PaymentServiceImpl implements PaymentService {
 // 2. DB에 저장
         refundOrCancelRepository.save(cancelRecord);
 
+        String cancellationReason = "CUSTOMER_REQUEST";
+
+        paymentCancellationProducer.sendPaymentCancelledEvent(
+                // 1. paymentId (Kafka Key)
+                payment.getPaymentKey(),
+                payment.getPaymentId(),
+                String.valueOf(payment.getUserId()),
+                payment.getAmount(),
+                cancellationReason
+        );
 
     }
 
