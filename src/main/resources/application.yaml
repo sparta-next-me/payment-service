@@ -2,7 +2,7 @@ spring:
   application:
     name: payment-service
   config:
-    import: "configserver:http://13.210.162.214:3100"
+    import: 'optional:configserver:'
   # 1. H2 데이터베이스 설정
   datasource:
     url: jdbc:postgresql://34.22.87.75:4020/nextme_db
@@ -38,11 +38,13 @@ spring:
         spring.json.value.default.type: org.nextme.common.event.PaymentConfirmedEvent
 
 eureka:
+  instance:
+    prefer-ip-address: true
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://13.210.162.214:3150/eureka/
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
 
 
 # OPEN DOC API 설정

@@ -3,6 +3,7 @@ package org.nextme.payment_service.payment.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.nextme.common.jpa.BaseEntity;
 import org.nextme.common.jpa.JpaAudit;
 import org.nextme.payment_service.payment.domain.error.PaymentErrorCode;
 import org.nextme.payment_service.payment.domain.error.PaymentException;
@@ -15,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Access(AccessType.FIELD)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Payment extends JpaAudit {
+public class Payment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
