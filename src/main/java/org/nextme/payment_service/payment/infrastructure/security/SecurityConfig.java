@@ -1,17 +1,11 @@
-//package org.nextme.payment_service.payment.infrastructure.security;
-//
-//import org.nextme.common.jwt.JwtTokenProvider;
-//import org.nextme.common.jwt.TokenBlacklistService;
-//import org.nextme.common.security.DirectJwtAuthenticationFilter;
-//import org.nextme.common.security.GatewayUserHeaderAuthenticationFilter;
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.config.http.SessionCreationPolicy;
-//import org.springframework.security.web.SecurityFilterChain;
-//import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-//
+package org.nextme.payment_service.payment.infrastructure.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+
+
 //import java.util.List;
 //
 //@Configuration
@@ -57,19 +51,18 @@
 //        return http.build();
 //    }
 //}
-///*@Configuration
-//public class SecurityConfig {
-//
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .csrf(c -> c.disable())
-//                .authorizeHttpRequests(auth ->
-//                auth.requestMatchers("/h2-console/**").permitAll()
-//                                .anyRequest().permitAll());
-//
-//       http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
-//        return http.build();
-//    }
-//}*/
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(c -> c.disable())
+                .authorizeHttpRequests(auth ->
+                auth.requestMatchers("/h2-console/**").permitAll()
+                                .anyRequest().permitAll());
+
+       http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
+        return http.build();
+    }
+}
