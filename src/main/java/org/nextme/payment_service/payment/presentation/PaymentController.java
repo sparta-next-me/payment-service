@@ -8,7 +8,6 @@ import org.nextme.payment_service.payment.infrastructure.toss.dto.PaymentListRes
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -72,7 +71,6 @@ public class PaymentController {
                 .toResponseEntity();
     }
 
-    @PreAuthorize("hasRole('USER')")
     @GetMapping("/{orderId}")
     public ResponseEntity<PaymentDetailResponse> getPaymentDetail(
             @PathVariable String orderId) {

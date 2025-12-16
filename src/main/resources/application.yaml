@@ -8,6 +8,14 @@ spring:
     url: jdbc:postgresql://34.22.87.75:4020/nextme_db
     username: nextme
     password: _aA123456
+    hikari:
+      maximum-pool-size: 5       # 풀 최대 커넥션 수
+      minimum-idle: 1            # 최소 idle 커넥션
+      idle-timeout: 300000       # 5분 (ms) - idle 커넥션 정리
+      max-lifetime: 1800000      # 30분 (ms) - 커넥션 재생성 주기
+      connection-timeout: 30000  # 30초 (ms) - 커넥션 못 얻으면 실패
+      pool-name: payment-service-hikari
+      leak-detection-threshold: 20000 # 20초 이상 반환 안 하면 누수 의심 로그
   jpa:
     hibernate:
       ddl-auto: update
