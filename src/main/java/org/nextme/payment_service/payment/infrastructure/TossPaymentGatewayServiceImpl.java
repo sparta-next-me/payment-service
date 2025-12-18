@@ -66,6 +66,12 @@ public class TossPaymentGatewayServiceImpl implements PaymentGatewayService {
                     })
                     .bodyToMono(TossConfirmResponse.class)
                     .block();
+            log.info("토스 Confirm 데이터: {}", response);
+
+            /**
+             * 1. 결제 진행전 프론트앤드에서 선점 여부 체크 API
+             * 2. 결제 완료시 예약 확정 전 선점 여부 확인, 선점 O -> 결제 취소,  선점  O -> 예약 처리
+             */
 
             return new PaymentConfirmationResponse(
                     response.getPaymentKey(),

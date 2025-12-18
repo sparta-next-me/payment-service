@@ -72,6 +72,7 @@ pipeline {
                         echo "Stopping existing container..."
                         docker stop ${CONTAINER_NAME} || true
                         docker rm ${CONTAINER_NAME} || true
+                        docker rmi ${FULL_IMAGE} || true
                       fi
                       echo "Starting new payment-service container..."
                       docker run -d --name ${CONTAINER_NAME} \\
