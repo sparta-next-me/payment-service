@@ -53,12 +53,13 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health", "/public/**").permitAll()
-                        .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll().anyRequest().authenticated()
+                        .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/api-docs.html"
                         ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayUserHeaderAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class)
