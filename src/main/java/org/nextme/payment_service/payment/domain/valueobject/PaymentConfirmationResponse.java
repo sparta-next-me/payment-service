@@ -2,6 +2,8 @@ package org.nextme.payment_service.payment.domain.valueobject;
 
 import lombok.Value;
 
+import java.util.Map;
+
 @Value
 public class PaymentConfirmationResponse {
 

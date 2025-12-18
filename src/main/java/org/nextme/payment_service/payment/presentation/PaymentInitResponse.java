@@ -7,8 +7,8 @@ import java.util.UUID;
 @Getter
 public class PaymentInitResponse {
     private UUID orderId;
-    private final long amount;
-    private final String clientKey;
+    private long amount;
+    private String clientKey;
 
     public PaymentInitResponse(UUID orderId, long amount, String clientKey) {
         this.orderId = orderId;

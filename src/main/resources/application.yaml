@@ -3,6 +3,11 @@ spring:
     name: payment-service
   config:
     import: 'optional:configserver:'
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: config-server
   # 1. H2 데이터베이스 설정
   datasource:
     url: jdbc:postgresql://34.22.87.75:4020/nextme_db
