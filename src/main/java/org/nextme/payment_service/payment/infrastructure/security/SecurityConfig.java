@@ -10,6 +10,7 @@ import org.nextme.common.jwt.JwtTokenProvider;
 import org.nextme.common.jwt.TokenBlacklistService;
 import org.nextme.common.security.DirectJwtAuthenticationFilter;
 import org.nextme.common.security.GatewayUserHeaderAuthenticationFilter;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
+                        .requestMatchers("/", "/index.html", "/public/**").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                         .requestMatchers(
