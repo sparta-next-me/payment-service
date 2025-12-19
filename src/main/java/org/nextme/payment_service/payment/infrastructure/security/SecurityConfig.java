@@ -41,10 +41,10 @@ public class SecurityConfig {
                 List.of(
                         "/v1/payments/init",
                         "/v1/payments/confirm",
-                        "/fail.html",
-                        "/success.html",
-                        "/payment.html",
-                        "/index.html",
+                        "/*.html",
+                        "/static/**",
+                        "/css/**",
+                        "/js/**",
                         "/favicon.ico"
                 )
         );
@@ -63,7 +63,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers("/", "/payment.html", "/index.html", "/public/**").permitAll()
+                        .requestMatchers("/", "/*.html", "/static/**", "/public/**", "/favicon.ico").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                         .requestMatchers(
@@ -72,8 +72,6 @@ public class SecurityConfig {
                                 "/api-docs.html",
                                 "/v1/payments/init",
                                 "/v1/payments/confirm",
-                                "/fail.html",
-                                "/success.html",
                                 "/favicon.ico"
 
                         ).permitAll()
