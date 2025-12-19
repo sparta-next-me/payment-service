@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers("/", "/index.html", "/public/**").permitAll()
+                        .requestMatchers("/", "/payment.html", "/index.html", "/public/**").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                         .requestMatchers(
