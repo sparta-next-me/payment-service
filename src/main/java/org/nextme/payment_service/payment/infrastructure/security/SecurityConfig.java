@@ -40,6 +40,9 @@ public class SecurityConfig {
                 // 이 리스트에 포함된 경로는 필터 내부에서 토큰 검증 로직을 건너뜁니다.
                 List.of(
                         "/v1/payments/init",
+                        "/v1/payments/confirm",
+                        "/fail.html",
+                        "/success.html",
                         "/payment.html",
                         "/index.html",
                         "/favicon.ico"
