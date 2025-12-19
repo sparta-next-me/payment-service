@@ -42,6 +42,7 @@ public class SecurityConfig {
                         "/v1/payments/init",
                         "/v1/payments/confirm",
                         "/*.html",
+                        "/*.css",
                         "/static/**",
                         "/css/**",
                         "/js/**",
@@ -63,7 +64,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
-                        .requestMatchers("/", "/*.html", "/static/**", "/public/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/*.html", "/*.css","/static/**", "/public/**", "/favicon.ico").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/actuator/prometheus", "/actuator/health").permitAll()
                         .requestMatchers(
