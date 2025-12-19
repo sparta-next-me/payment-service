@@ -70,7 +70,12 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/api-docs.html",
-                                "/v1/payments/init"
+                                "/v1/payments/init",
+                                "/v1/payments/confirm",
+                                "/fail.html",
+                                "/success.html",
+                                "/favicon.ico"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
