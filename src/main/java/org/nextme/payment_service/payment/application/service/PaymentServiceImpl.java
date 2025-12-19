@@ -1,6 +1,7 @@
 package org.nextme.payment_service.payment.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.nextme.payment_service.payment.domain.*;
 import org.nextme.payment_service.payment.domain.error.PaymentErrorCode;
 import org.nextme.payment_service.payment.domain.error.PaymentException;
@@ -19,8 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+@Slf4j
 @Service // 💡 Spring Bean으로 등록
 @RequiredArgsConstructor
 // 💡 PaymentService 인터페이스 구현
@@ -63,16 +66,18 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
 
-        payment.confirmSuccess(pgResponse.getPgTransactionId());
+        payment.confirmSuccess(pgResponse.pgTransactionId());
 
         paymentRepository.save(payment);
-
+        log.info("결제 확정 완료 - 이벤트 발생 start");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         eventProducer.sendPaymentConfirmedEvent(
                 payment.getUserId(),
                 payment.getPaymentKey(),
-                payment.getPaymentId().toString()
+                payment.getPaymentId().toString(),
+                LocalDateTime.parse(pgResponse.metadata().get("date") + " " + pgResponse.metadata().get("time"), formatter)
         );
-
+        log.info("결제 확정 완료 - 이벤트 발생 end");
         // 6. [SAGA 처리]: 결제 성공 이벤트 발행 (다른 도메인 서비스에 알림)
         // eventPublisher.publish(new PaymentConfirmedEvent(payment.getSagaId(), ...));
     }

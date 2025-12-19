@@ -69,51 +69,51 @@ public class SecurityConfig {
     }
 }
 
-//import java.util.List;
-//
-//@Configuration
-//@EnableMethodSecurity(prePostEnabled = true)
-//public class SecurityConfig {
-//    @Bean
-//    public GatewayUserHeaderAuthenticationFilter gatewayUserHeaderAuthenticationFilter() {
-//        return new GatewayUserHeaderAuthenticationFilter();
-//    }
-//
-//    @Bean
-//    public DirectJwtAuthenticationFilter directJwtAuthenticationFilter(
-//            JwtTokenProvider jwtTokenProvider,
-//            TokenBlacklistService tokenBlacklistService
-//    ) {
-//        return new DirectJwtAuthenticationFilter(
-//                jwtTokenProvider,
-//                tokenBlacklistService,
-//                List.of()
-//        );
-//    }
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(
-//            HttpSecurity http,
-//            GatewayUserHeaderAuthenticationFilter gatewayUserHeaderAuthenticationFilter,
-//            DirectJwtAuthenticationFilter directJwtAuthenticationFilter
-//    ) throws Exception {
-//        http
-//                .csrf(csrf -> csrf.disable())
-//                .formLogin(form -> form.disable())
-//                .httpBasic(basic -> basic.disable())
-//                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/health", "/public/**").permitAll()
-//                        .requestMatchers("/v1/advisor/auth/**").permitAll()
-//                        .anyRequest().authenticated()
-//                )
-//                .addFilterBefore(gatewayUserHeaderAuthenticationFilter,
-//                        UsernamePasswordAuthenticationFilter.class)
-//                .addFilterAfter(directJwtAuthenticationFilter,
-//                        GatewayUserHeaderAuthenticationFilter.class);
-//        return http.build();
-//    }
-//}
+/*import java.util.List;
+
+@Configuration
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+    @Bean
+    public GatewayUserHeaderAuthenticationFilter gatewayUserHeaderAuthenticationFilter() {
+        return new GatewayUserHeaderAuthenticationFilter();
+    }
+
+    @Bean
+    public DirectJwtAuthenticationFilter directJwtAuthenticationFilter(
+            JwtTokenProvider jwtTokenProvider,
+            TokenBlacklistService tokenBlacklistService
+    ) {
+        return new DirectJwtAuthenticationFilter(
+                jwtTokenProvider,
+                tokenBlacklistService,
+                List.of()
+        );
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            GatewayUserHeaderAuthenticationFilter gatewayUserHeaderAuthenticationFilter,
+            DirectJwtAuthenticationFilter directJwtAuthenticationFilter
+    ) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/health", "/public/**").permitAll()
+                        .requestMatchers("/v1/advisor/auth/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(gatewayUserHeaderAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(directJwtAuthenticationFilter,
+                        GatewayUserHeaderAuthenticationFilter.class);
+        return http.build();
+    }
+}*/
 /*@Configuration
 public class SecurityConfig {
 

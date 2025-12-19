@@ -76,7 +76,8 @@ public class TossPaymentGatewayServiceImpl implements PaymentGatewayService {
             return new PaymentConfirmationResponse(
                     response.getPaymentKey(),
                     response.getOrderId(),
-                    response.getTotalAmount()
+                    response.getTotalAmount(),
+                    response.getMetadata()
             );
 
         } catch (PaymentException e) {
