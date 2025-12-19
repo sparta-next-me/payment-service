@@ -37,7 +37,13 @@ public class SecurityConfig {
         return new DirectJwtAuthenticationFilter(
                 jwtTokenProvider,
                 tokenBlacklistService,
-                List.of()
+                // 이 리스트에 포함된 경로는 필터 내부에서 토큰 검증 로직을 건너뜁니다.
+                List.of(
+                        "/v1/payments/init",
+                        "/payment.html",
+                        "/index.html",
+                        "/favicon.ico"
+                )
         );
     }
 
@@ -60,7 +66,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/api-docs.html"
+                                "/api-docs.html",
+                                "/v1/payments/init"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
