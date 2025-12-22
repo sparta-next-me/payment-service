@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -71,11 +72,15 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(payment);
         log.info("결제 확정 완료 - 이벤트 발생 start");
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        Map<String, String> metadata = pgResponse.metadata();
         eventProducer.sendPaymentConfirmedEvent(
                 payment.getUserId(),
                 payment.getPaymentKey(),
                 payment.getPaymentId().toString(),
-                LocalDateTime.parse(pgResponse.metadata().get("date") + " " + pgResponse.metadata().get("time"), formatter)
+                LocalDateTime.parse(metadata.get("date") + " " + metadata.get("time"), formatter),
+                LocalDateTime.parse(metadata.get("date") + " " + metadata.get("endTime"), formatter),
+                UUID.fromString(metadata.get("ProductId")),
+                UUID.fromString(metadata.get("advisorId"))
         );
         log.info("결제 확정 완료 - 이벤트 발생 end");
         // 6. [SAGA 처리]: 결제 성공 이벤트 발행 (다른 도메인 서비스에 알림)
