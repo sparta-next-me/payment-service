@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: next-me
+  labels:
+    app: payment-service
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-cred
+      containers:
+        - name: payment-service
+          image: ghcr.io/sparta-next-me/payment-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 11113 # payment-service 포트
+
+          envFrom:
+            - secretRef:
+                name: payment-env
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://config-server.next-me.svc.cluster.local:3100"
+            - name: SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED
+              value: "false" # 명시적으로 비활성화
+            - name: SPRING_CLOUD_CONFIG_NAME
+              value: "payment-service"
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx768m"
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 11113
+            initialDelaySeconds: 80
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 11113
+            initialDelaySeconds: 120
+            periodSeconds: 20
+
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: next-me
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - name: http
+      port: 11113
+      targetPort: 11113
+  type: ClusterIP

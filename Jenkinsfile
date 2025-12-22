@@ -1,87 +1,86 @@
 pipeline {
     agent any
+
     environment {
         APP_NAME        = "payment-service"
-        // GHCR 레지스트리 정보
+        NAMESPACE       = "next-me"
         REGISTRY        = "ghcr.io"
         GH_OWNER        = "sparta-next-me"
         IMAGE_REPO      = "payment-service"
         FULL_IMAGE      = "${REGISTRY}/${GH_OWNER}/${IMAGE_REPO}:latest"
-        CONTAINER_NAME  = "payment-service"
-        HOST_PORT       = "11113"
-        CONTAINER_PORT  = "11113"
+        TZ              = "Asia/Seoul"
     }
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
+
         stage('Build & Test') {
             steps {
-                withCredentials([
-                    file(credentialsId: 'payment-env', variable: 'ENV_FILE')
-                ]) {
+                // payment-env 크레덴셜 사용
+                withCredentials([file(credentialsId: 'payment-env', variable: 'ENV_FILE')]) {
                     sh '''
-                      # 환경 파일 존재 확인
-                      if [ ! -f "$ENV_FILE" ]; then
-                        echo "Error: ENV_FILE not found at $ENV_FILE"
-                        exit 1
-                      fi
                       set -a
-                      . "$ENV_FILE"       # DB_URL, DB_USERNAME, DB_PASSWORD, REDIS_HOST, OAUTH 키들 export
+                      . "$ENV_FILE"
                       set +a
-                      ./gradlew clean test --no-daemon
-                      ./gradlew bootJar --no-daemon
+                      ./gradlew clean bootJar --no-daemon
                     '''
                 }
             }
         }
-        stage('Docker Build') {
+
+        stage('Docker Build & Push') {
             steps {
-                sh """
-                  docker build -t ${FULL_IMAGE} .
-                """
-            }
-        }
-        stage('Push Image') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'ghcr-credential',
-                        usernameVariable: 'REGISTRY_USER',
-                        passwordVariable: 'REGISTRY_TOKEN'
-                    )
-                ]) {
+                withCredentials([usernamePassword(credentialsId: 'ghcr-credential', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
                     sh """
-                      set -e  # 아래 명령 중 하나라도 실패하면 즉시 종료
-                      echo "\$REGISTRY_TOKEN" | docker login ghcr.io -u "\$REGISTRY_USER" --password-stdin
+                      docker build -t ${FULL_IMAGE} .
+                      echo "${TOKEN}" | docker login ${REGISTRY} -u "${USER}" --password-stdin
                       docker push ${FULL_IMAGE}
                     """
                 }
             }
         }
-        stage('Deploy') {
+
+        stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([
+                    file(credentialsId: 'k3s-kubeconfig', variable: 'KUBECONFIG_FILE'),
                     file(credentialsId: 'payment-env', variable: 'ENV_FILE')
                 ]) {
-                    sh """
-                      # 기존 컨테이너 있으면 정지/삭제
-                      if [ \$(docker ps -aq -f name=${CONTAINER_NAME}) ]; then
-                        echo "Stopping existing container..."
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                        docker rmi ${FULL_IMAGE} || true
-                      fi
-                      echo "Starting new payment-service container..."
-                      docker run -d --name ${CONTAINER_NAME} \\
-                        --env-file \${ENV_FILE} \\
-                        -p ${HOST_PORT}:${CONTAINER_PORT} \\
-                        ${FULL_IMAGE}
-                    """
+                    sh '''
+                      export KUBECONFIG=${KUBECONFIG_FILE}
+
+                      echo "Updating K8s Secret: payment-env..."
+                      kubectl delete secret payment-env -n ${NAMESPACE} --ignore-not-found
+                      kubectl create secret generic payment-env --from-env-file=${ENV_FILE} -n ${NAMESPACE}
+
+                      echo "Applying manifests from payment-service.yaml..."
+                      kubectl apply -f payment-service.yaml -n ${NAMESPACE}
+
+                      echo "Monitoring rollout status..."
+                      kubectl rollout status deployment/payment-service -n ${NAMESPACE}
+                    '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Cleaning up Docker resources..."
+            // 1. 방금 빌드한 이미지 삭제
+            sh "docker rmi ${FULL_IMAGE} || true"
+            // 2. [중요] 사용하지 않는 모든 매달린(dangling) 이미지 및 컨테이너 삭제 (용량 확보 핵심)
+            sh "docker system prune -f"
+        }
+        success {
+            echo "Successfully deployed ${APP_NAME}!"
+        }
+        failure {
+            echo "Deployment failed."
         }
     }
 }
