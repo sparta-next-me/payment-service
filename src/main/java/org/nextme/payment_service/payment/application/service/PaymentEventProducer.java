@@ -16,8 +16,8 @@ public class PaymentEventProducer {
 
     private static final String TOPIC_PAYMENT_CONFIRMED = "payment.confirmed.v1";
 
-    public void sendPaymentConfirmedEvent(UUID userId, String paymentId, String paymentKey, LocalDateTime dateTime) {
-        PaymentConfirmedEvent event = new PaymentConfirmedEvent(userId.toString(), paymentId, paymentKey, dateTime);
+    public void sendPaymentConfirmedEvent(UUID userId, String paymentId, String paymentKey, LocalDateTime dateTime, LocalDateTime endTime, UUID productId, UUID advisorId) {
+        PaymentConfirmedEvent event = new PaymentConfirmedEvent(userId.toString(), paymentId, paymentKey, dateTime, endTime, productId, advisorId);
 
         kafkaTemplate.send(TOPIC_PAYMENT_CONFIRMED, paymentId, event);
     }
