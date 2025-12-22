@@ -79,7 +79,7 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getPaymentId().toString(),
                 LocalDateTime.parse(metadata.get("date") + " " + metadata.get("time"), formatter),
                 LocalDateTime.parse(metadata.get("date") + " " + metadata.get("endTime"), formatter),
-                UUID.fromString(metadata.get("ProductId")),
+                UUID.fromString(metadata.get("productId")),
                 UUID.fromString(metadata.get("advisorId"))
         );
         log.info("결제 확정 완료 - 이벤트 발생 end");
